@@ -125,6 +125,30 @@ void helloNrxMove()
 	acedSSFree(ssname);
 }
 
+
+/// <summary>
+/// Команда с созданием примитива CrossCircle
+/// </summary>
+void helloNrxCrCircke()
+{
+	AcDbCrossCircle::rxInit();
+	AcDbCrossCircle* newCrCircle = new AcDbCrossCircle();
+	//Запрос точки центра
+	AcGePoint3d centerPoint;
+	int retFirst = ncedGetPoint(NULL, L"\nПоставьте точку центра ", asDblArray(centerPoint));
+	newCrCircle->setCenter(centerPoint);
+	AcGePoint3d vectorEndPoint;
+	int retSecond = ncedGetPoint(NULL, L"\nПоставьте точку конца вектора радиуса ", asDblArray(vectorEndPoint));
+	//Запрос точки конца вектора радиуса
+	newCrCircle->setRadiusVector(vectorEndPoint - centerPoint);
+
+	if (retFirst != RTCAN && retSecond != RTCAN)
+	{
+		addToModelSpace(newCrCircle->objectId(), newCrCircle);
+		newCrCircle->close();
+	}
+}
+
 // EntryPoint
 extern "C" __declspec(dllexport) NcRx::AppRetCode
 ncrxEntryPoint(NcRx::AppMsgCode msg, void* pkt)
@@ -147,6 +171,11 @@ ncrxEntryPoint(NcRx::AppMsgCode msg, void* pkt)
 			L"HELLONRXMOVE",
 			ACRX_CMD_TRANSPARENT,
 			helloNrxMove);
+		ncedRegCmds->addCommand(L"HELLONRX_GROUP",
+			L"_CrCircke",
+			L"CrCircke",
+			ACRX_CMD_TRANSPARENT,
+			helloNrxCrCircke);
 		break;
 	case NcRx::kUnloadAppMsg:   
 		acedRegCmds->removeGroup(L"HELLONRX_GROUP");

@@ -11,5 +11,6 @@
 #include "framework.h"
 #include "arxHeaders.h"
 #include "AcExtensionModule.h"
+#include "AcDbCrossCircle.h"
 
 #endif //PCH_H
