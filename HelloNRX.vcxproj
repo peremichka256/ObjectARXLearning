@@ -63,19 +63,19 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="C:\Users\Gleb B\source\repos\NC_SDK_RU_24.1.6578.4521.7731\include\arxgate\rxsdk_debugcfg.props" />
+    <Import Project="C:\Users\perem\source\repos\NC_SDK_RU_24.1.6578.4521.7731\include\arxgate\rxsdk_debugcfg.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="EC:\Users\Gleb B\source\repos\NC_SDK_RU_24.1.6578.4521.7731\include\arxgate\rxsdk_releasecfg.props" />
+    <Import Project="C:\Users\perem\source\repos\NC_SDK_RU_24.1.6578.4521.7731\include\arxgate\rxsdk_releasecfg.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="C:\Users\Gleb B\source\repos\NC_SDK_RU_24.1.6578.4521.7731\include\arxgate\rxsdk_debugcfg.props" />
+    <Import Project="C:\Users\perem\source\repos\NC_SDK_RU_24.1.6578.4521.7731\include\arxgate\rxsdk_debugcfg.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="C:\Users\Gleb B\source\repos\NC_SDK_RU_24.1.6578.4521.7731\include\arxgate\rxsdk_releasecfg.props" />
+    <Import Project="C:\Users\perem\source\repos\NC_SDK_RU_24.1.6578.4521.7731\include\arxgate\rxsdk_releasecfg.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -189,6 +189,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AcDbCrossCircle.cpp" />
+    <ClCompile Include="AcDbScrew.cpp" />
     <ClCompile Include="HelloNRX.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -203,6 +204,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AcDbCrossCircle.h" />
+    <ClInclude Include="AcDbScrew.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="HelloNRX.h" />
     <ClInclude Include="pch.h" />

@@ -125,7 +125,6 @@ void helloNrxMove()
 	acedSSFree(ssname);
 }
 
-
 /// <summary>
 /// Команда с созданием примитива CrossCircle
 /// </summary>
@@ -135,10 +134,10 @@ void helloNrxCrCircke()
 	AcDbCrossCircle* newCrCircle = new AcDbCrossCircle();
 	//Запрос точки центра
 	AcGePoint3d centerPoint;
-	int retFirst = ncedGetPoint(NULL, L"\nПоставьте точку центра ", asDblArray(centerPoint));
+	int retFirst = acedGetPoint(NULL, L"\nПоставьте точку центра ", asDblArray(centerPoint));
 	newCrCircle->setCenter(centerPoint);
 	AcGePoint3d vectorEndPoint;
-	int retSecond = ncedGetPoint(NULL, L"\nПоставьте точку конца вектора радиуса ", asDblArray(vectorEndPoint));
+	int retSecond = acedGetPoint(NULL, L"\nПоставьте точку конца вектора радиуса ", asDblArray(vectorEndPoint));
 	//Запрос точки конца вектора радиуса
 	newCrCircle->setRadiusVector(vectorEndPoint - centerPoint);
 
@@ -146,6 +145,28 @@ void helloNrxCrCircke()
 	{
 		addToModelSpace(newCrCircle->objectId(), newCrCircle);
 		newCrCircle->close();
+	}
+}
+
+/// <summary>
+/// Команда с созданием примитива Screw
+/// </summary>
+void helloNrxScrew()
+{
+	AcDbScrew::rxInit();
+	AcDbScrew* newScrew = new AcDbScrew();
+	AcGePoint3d centerPoint;
+	//Вот тут надо переводить из мировой в пользовательскую 
+	int retFirst = acedGetPoint(NULL, L"\nПоставьте точку центра ", asDblArray(centerPoint));
+	newScrew->setCenter(centerPoint);
+	AcGePoint3d directionPoint;
+	int retSecond = acedGetPoint(NULL, L"\nВыберите направления винта ", asDblArray(directionPoint));
+	newScrew->setDirection(directionPoint - centerPoint);
+
+	if (retFirst != RTCAN)
+	{
+		addToModelSpace(newScrew->objectId(), newScrew);
+		newScrew->close();
 	}
 }
 
@@ -172,10 +193,15 @@ ncrxEntryPoint(NcRx::AppMsgCode msg, void* pkt)
 			ACRX_CMD_TRANSPARENT,
 			helloNrxMove);
 		ncedRegCmds->addCommand(L"HELLONRX_GROUP",
-			L"_CrCircke",
-			L"CrCircke",
+			L"_CrCircle",
+			L"CrCircle",
 			ACRX_CMD_TRANSPARENT,
 			helloNrxCrCircke);
+		ncedRegCmds->addCommand(L"HELLONRX_GROUP",
+			L"_Screw",
+			L"Screw",
+			ACRX_CMD_TRANSPARENT,
+			helloNrxScrew);
 		break;
 	case NcRx::kUnloadAppMsg:   
 		acedRegCmds->removeGroup(L"HELLONRX_GROUP");

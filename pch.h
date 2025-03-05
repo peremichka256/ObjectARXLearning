@@ -12,5 +12,6 @@
 #include "arxHeaders.h"
 #include "AcExtensionModule.h"
 #include "AcDbCrossCircle.h"
+#include "AcDbScrew.h"
 
 #endif //PCH_H

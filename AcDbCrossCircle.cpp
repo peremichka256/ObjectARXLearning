@@ -1,22 +1,3 @@
-//
-// Копирайт (С) 2020, ООО «Нанософт разработка». Все права защищены.
-// 
-// Данное программное обеспечение, все исключительные права на него, его
-// документация и сопроводительные материалы принадлежат ООО «Нанософт разработка».
-// Данное программное обеспечение может использоваться при разработке и входить
-// в состав разработанных программных продуктов при соблюдении условий
-// использования, оговоренных в «Лицензионном договоре присоединения
-// на использование программы для ЭВМ «Платформа nanoCAD»».
-// 
-// Данное программное обеспечение защищено в соответствии с законодательством
-// Российской Федерации об интеллектуальной собственности и международными
-// правовыми актами.
-// 
-// Используя данное программное обеспечение,  его документацию и
-// сопроводительные материалы вы соглашаетесь с условиями использования,
-// указанными выше. 
-//
-
 //-----------------------------------------------------------------------------
 //----- AcDbCrossCircle.cpp : Implementation of AcDbCrossCircle
 //-----------------------------------------------------------------------------
@@ -172,6 +153,10 @@ Acad::ErrorStatus AcDbCrossCircle::dwgOutFields(AcDbDwgFiler *pFiler) const
 
   // Параметры объекта
   // TODO: Сохранить параметры примитива при помощи pFiler->writePoint3d(), pFiler->writeVector3d()
+   pFiler->writePoint3d(_center);
+   pFiler->writeVector3d(_normal);
+   pFiler->writeVector3d(_radiusVector);
+   //pFiler->writeDouble(_radiusVector.length());
   // TODO M5: Сохранить ссылку на отрезок
 
   return pFiler->filerStatus();
@@ -197,90 +182,11 @@ Acad::ErrorStatus AcDbCrossCircle::dwgInFields(AcDbDwgFiler *pFiler)
 
   // Чтение параметров
   // TODO: Прочесть параметры примитива при помощи pFiler->readPoint3d(), pFiler->readVector3d()
+  pFiler->readPoint3d(&_center);
+  pFiler->readVector3d(&_normal);
+  pFiler->readVector3d(&_radiusVector);
+
   // TODO M3: Прочесть ссылку на отрезок и вычислить m_vecLineRef
-
-  return pFiler->filerStatus();
-}
-
-Acad::ErrorStatus AcDbCrossCircle::dxfOutFields(AcDbDxfFiler *pFiler) const
-{
-  assertReadEnabled();
-
-  // Сохранение данных базового класса
-  Acad::ErrorStatus es = AcDbEntity::dxfOutFields(pFiler);
-  if (es != Acad::eOk)
-    return es;
-
-  // DXF класс
-  es = pFiler->writeItem(AcDb::kDxfSubclass, _RXST("AcDbCrossCircle"));
-  if (es != Acad::eOk)
-    return es;
-
-  // Версия объекта
-  if ((es = pFiler->writeUInt32(AcDb::kDxfInt32, AcDbCrossCircle::kCurrentVersionNumber)) != Acad::eOk)
-    return es;
-
-  // Параметры объекта
-  // TODO: Сохранить параметры примитива, используя DXF коды AcDb::kDxfXCoord, AcDb::kDxfNormalX, AcDb::kDxfNormalX+1
-
-  return pFiler->filerStatus();
-}
-
-Acad::ErrorStatus AcDbCrossCircle::dxfInFields(AcDbDxfFiler *pFiler)
-{
-  assertWriteEnabled();
-
-  // Чтение данных базового класса
-  Acad::ErrorStatus es =AcDbEntity::dxfInFields(pFiler);
-
-  // DXF класс  
-  if (es != Acad::eOk || !pFiler->atSubclassData(_RXST("AcDbCrossCircle")))
-    return pFiler->filerStatus();
-
-  // Версия объекта
-  struct resbuf rb;
-
-  pFiler->readItem(&rb);
-
-  if (rb.restype != AcDb::kDxfInt32)
-  {
-    pFiler->pushBackItem();
-    pFiler->setError(Acad::eInvalidDxfCode, _RXST("\nError: expected group code %d(version #)"), AcDb::kDxfInt32);
-    return pFiler->filerStatus();
-  }
-
-  Adesk::UInt32 version = (Adesk::UInt32)rb.resval.rlong;
-
-  if (version > AcDbCrossCircle::kCurrentVersionNumber)
-    return Acad::eMakeMeProxy;
-
-  if (version < AcDbCrossCircle::kCurrentVersionNumber)
-    return Acad::eMakeMeProxy ;
-  
-  // Чтение параметров в произвольном порядке по DXF коду
-  while(es == Acad::eOk &&(es = pFiler->readResBuf(&rb)) == Acad::eOk)
-  {
-    switch(rb.restype)
-    {
-    case AcDb::kDxfXCoord:
-      // TODO: Преобразовать rb.resval.rpoint к AcGePoint3d, используя asPnt3d()
-      break;
-    case AcDb::kDxfNormalX:
-      // TODO: Преобразовать rb.resval.rpoint к AcGeVector3d, используя asVec3d()
-      break;
-    case AcDb::kDxfNormalX + 1:
-      // TODO: Преобразовать rb.resval.rpoint к AcGeVector3d, используя asVec3d()
-      break;
-    default:
-      // Неизвестный DXF код
-      pFiler->pushBackItem();
-      es = Acad::eEndOfFile;
-      break ;
-    }
-  }
-
-  if (es != Acad::eEndOfFile)
-    return Acad::eInvalidResBuf;
 
   return pFiler->filerStatus();
 }
@@ -290,100 +196,113 @@ Acad::ErrorStatus AcDbCrossCircle::subTransformBy(const AcGeMatrix3d& xform)
   assertWriteEnabled();
 
   // TODO: Преобразовать параметры примитива
+  _center.transformBy(xform);
+  _normal.transformBy(xform);
+  _radiusVector.transformBy(xform);
 
   return Acad::eNotImplementedYet;
 }
 
 // Ручки
-Acad::ErrorStatus AcDbCrossCircle::subGetGripPoints(
-  AcGePoint3dArray &gripPoints, AcDbIntArray &osnapModes, AcDbIntArray &geomIds
-  ) const
+Acad::ErrorStatus AcDbCrossCircle::subGetGripPoints(AcGePoint3dArray &gripPoints,
+    AcDbIntArray &osnapModes, AcDbIntArray &geomIds) const
 {
-  assertReadEnabled();
+     assertReadEnabled();
 
-  AcGePoint3dArray aCrCircle;
-  aCrCircle.setLogicalLength(1); // TODO: Потом 5, потом 9
+     AcGePoint3dArray aCrCircle;
+     aCrCircle.setLogicalLength(9); 
 
-  // Центр
-  //aCrCircle[0] = // TODO: Найти центральную точку
+     // Центр
+     aCrCircle[0] = _center;
 
-  // Угол поворота
-  //aCrCircle[1] = // TODO: Найти концы креста
-  //aCrCircle[2] = 
-  //aCrCircle[3] = 
-  //aCrCircle[4] = 
+     // Угол поворота
+     aCrCircle[1] = _center + _radiusVector;
+     aCrCircle[2] = _center - _radiusVector;
+     aCrCircle[3] = _center - _radiusVector.perpVector()
+         * _radiusVector.length();
+     aCrCircle[4] = _center + _radiusVector.perpVector()
+         * _radiusVector.length();
 
-  // Радиус
-  //AcGeVector3d vec45=m_vecRad;
-  //vec45.rotateBy(atan(1.0), m_normal);
+     // Радиус
+     AcGeVector3d vec45 = _radiusVector;
+     vec45.rotateBy(atan(1.0), _normal);
 
-  //aCrCircle[5] = // TODO: Найти точки на окружности между концами креста
-  //aCrCircle[6] = 
-  //aCrCircle[7] = 
-  //aCrCircle[8] = 
+     aCrCircle[5] = _center + vec45;
+     aCrCircle[6] = _center - vec45;
+     aCrCircle[7] = _center - vec45.perpVector() 
+         * _radiusVector.length();
+     aCrCircle[8] = _center + vec45.perpVector() 
+         * _radiusVector.length();
 
-  // TODO: gripPoints.append(aCrCircle);
+     gripPoints.append(aCrCircle);
 
-  return Acad::eOk;
+     return Acad::eOk;
 }
 
 Acad::ErrorStatus AcDbCrossCircle::subMoveGripPointsAt(const AcDbIntArray &indices, const AcGeVector3d &offset)
 {
-  if (indices.length()== 0 || offset.isZeroLength())
+    if (indices.length()== 0 || offset.isZeroLength())
     return Acad::eOk;
 
-  assertWriteEnabled();
+    assertWriteEnabled();
 
-  //AcGeVector3d vec45=m_vecRad;
-  //vec45.rotateBy(atan(1.0), m_normal);
+    AcGeVector3d vec45 = _radiusVector;
+    vec45.rotateBy(atan(1.0), _normal);
 
-  for (int i = 0; i < indices.length(); i++) 
-  {
-    switch(indices[i]) 
+    for (int i = 0; i < indices.length(); i++) 
     {
-    case 0: // Центр
-      // TODO:
-      break;
-    case 1: // Угол поворота
-      // TODO: 
-      break;
-    case 2:
-      // TODO: 
-      break;
-    case 3:
-      // TODO: 
-      break;
-    case 4:
-      // TODO: 
-      break;
-    case 5: // Радиус
-      // TODO: 
-      break;
-    case 6:
-      // TODO: 
-      break;
-    case 7:
-      // TODO: 
-      break;
-    case 8:
-      // TODO: 
-      break;
+        switch(indices[i]) 
+        {
+        case 0: // Центр
+            this->setCenter(_center + offset);
+          break;
+        case 1: // Угол поворота
+            this->setRadiusVector(_radiusVector.length() 
+                * (_radiusVector + offset).normalize());
+          break;
+        case 2:
+            this->setRadiusVector(_radiusVector.length() 
+                * (_radiusVector - offset).normalize());
+          break;
+        case 3:
+            this->setRadiusVector(_radiusVector.length() 
+                * (_radiusVector - offset.crossProduct(_normal)).normalize());
+          break;
+        case 4:
+            this->setRadiusVector(_radiusVector.length() 
+                * (_radiusVector + offset.crossProduct(_normal)).normalize());
+          break;
+        case 5: // Радиус
+            this->setRadiusVector(_radiusVector.normalize() * (vec45 + offset).length());
+          break;
+        case 6:
+            this->setRadiusVector(_radiusVector.normalize() * (-vec45 + offset).length());
+          break;
+        case 7:
+            this->setRadiusVector(_radiusVector.normalize()
+                * (-vec45.perpVector() * _radiusVector.length() + offset).length());
+          break;
+        case 8:
+            this->setRadiusVector(_radiusVector.normalize()
+                * (vec45.perpVector() * _radiusVector.length() + offset).length());
+          break;
+        }
     }
-  }
 
-  return Acad::eOk;
+    return Acad::eOk;
 }
 
 Acad::ErrorStatus AcDbCrossCircle::subGetStretchPoints(AcGePoint3dArray& points) const
 {
-  // TODO: Вызвать subGetGripPoints()
-  return Acad::eNotImplementedYet;
+    AcDbIntArray* array = nullptr;
+    subGetGripPoints(points, *array, *array);
+    return Acad::eNotImplementedYet;
 }
 
 Acad::ErrorStatus AcDbCrossCircle::subMoveStretchPointsAt(const AcDbIntArray& indices, const AcGeVector3d& offset)
 {
-  // TODO: Вызвать subMoveGripPointsAt()
-  return Acad::eNotImplementedYet;
+    subMoveGripPointsAt(indices, offset);
+    return Acad::eNotImplementedYet;
 
 }
 
