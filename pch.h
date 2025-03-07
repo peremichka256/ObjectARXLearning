@@ -13,5 +13,6 @@
 #include "AcExtensionModule.h"
 #include "AcDbCrossCircle.h"
 #include "AcDbScrew.h"
+#include "ScrewJig.h"
 
 #endif //PCH_H

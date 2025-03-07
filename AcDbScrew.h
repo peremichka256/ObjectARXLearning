@@ -43,6 +43,19 @@ protected:
 	// AcDbEntity
 	virtual Adesk::Boolean subWorldDraw(AcGiWorldDraw* pWD) override;
 	virtual Acad::ErrorStatus subTransformBy(const AcGeMatrix3d& xform) override;
+	// Ручки
+	virtual Acad::ErrorStatus subGetGripPoints(AcGePoint3dArray& gripPoints,
+		AcDbIntArray& osnapModes, AcDbIntArray& geomIds) const override;
+	virtual Acad::ErrorStatus subGetGripPoints(AcDbGripDataPtrArray& grips,
+		const double curViewUnitSize,
+		const int gripSize,
+		const AcGeVector3d& curViewDir,
+		const int bitflags) const;
+	virtual Acad::ErrorStatus subMoveGripPointsAt(const AcDbIntArray& indices,
+		const AcGeVector3d& offset) override;
+	virtual Acad::ErrorStatus subMoveGripPointsAt(const AcDbVoidPtrArray& appData,
+		const AcGeVector3d& offset,
+		const int bitflags);
 
 private:
 	// Параметры винта

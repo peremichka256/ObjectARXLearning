@@ -6,9 +6,12 @@ Adesk::UInt32 AcDbScrew::kCurrentVersionNumber = 1;
 
 //-----------------------------------------------------------------------------
 ACRX_DXF_DEFINE_MEMBERS(
-    AcDbScrew, AcDbEntity,
-    AcDb::kDHL_CURRENT, AcDb::kMReleaseCurrent,
-    AcDbProxyEntity::kNoOperation, ACDBSCREW,
+    AcDbScrew,
+    AcDbEntity,
+    AcDb::kDHL_CURRENT, 
+    AcDb::kMReleaseCurrent,
+    AcDbProxyEntity::kNoOperation,
+    ACDBSCREW,
     SCREWAPP
     | Product Desc : A description for your object
     | Company : Your company name
@@ -18,20 +21,9 @@ ACRX_DXF_DEFINE_MEMBERS(
 //-----------------------------------------------------------------------------
 
 //Стандартный конструктор
+//////////////////////////////////////////////////////////////////////////
 AcDbScrew::AcDbScrew() : AcDbEntity()
 {
-    AcGeMatrix3d UcsToWcsMat;
-    acdbUcsMatrix(UcsToWcsMat);
-
-    // Get data from user coordinate system.
-    //
-    AcGePoint3d orgPt;
-    AcGeVector3d xAxis, yAxis, zAxis;
-    UcsToWcsMat.getCoordSystem(orgPt, xAxis, yAxis, zAxis);
-
-    setDatabaseDefaults();
-    setNormal(zAxis);
-
     setBodyLength(6000);
     setHeadHeight(1000);
     setHeadDiameter(2000);
@@ -40,6 +32,7 @@ AcDbScrew::AcDbScrew() : AcDbEntity()
 }
 
 //Деструктор
+//////////////////////////////////////////////////////////////////////////
 AcDbScrew::~AcDbScrew()
 {
 
@@ -47,48 +40,56 @@ AcDbScrew::~AcDbScrew()
 
 // Методы чтения и записи параметров
 //Геттеры
+//////////////////////////////////////////////////////////////////////////
 AcGePoint3d AcDbScrew::center()
 {
     assertReadEnabled();
     return _center;
 }
 
+//////////////////////////////////////////////////////////////////////////
 AcGeVector3d AcDbScrew::direction()
 {
     assertReadEnabled();
     return _direction;
 }
 
+//////////////////////////////////////////////////////////////////////////
 AcGeVector3d AcDbScrew::normal()
 {
     assertReadEnabled();
     return _normal;
 }
 
+//////////////////////////////////////////////////////////////////////////
 double AcDbScrew::bodyLength()
 {
     assertReadEnabled();
     return _bodyLength;
 }
 
+//////////////////////////////////////////////////////////////////////////
 double AcDbScrew::headHeight()
 {
     assertReadEnabled();
     return _headHeight;
 }
 
+//////////////////////////////////////////////////////////////////////////
 double AcDbScrew::headDiameter()
 {
     assertReadEnabled();
     return _headDiameter;
 }
 
+//////////////////////////////////////////////////////////////////////////
 double AcDbScrew::bodyDiameter()
 {
     assertReadEnabled();
     return _bodyDiameter;
 }
 
+//////////////////////////////////////////////////////////////////////////
 double AcDbScrew::transition()
 {
     assertReadEnabled();
@@ -96,6 +97,7 @@ double AcDbScrew::transition()
 }
 
 //Сеттеры
+//////////////////////////////////////////////////////////////////////////
 Acad::ErrorStatus AcDbScrew::setCenter(AcGePoint3d center)
 {
     assertWriteEnabled();
@@ -103,20 +105,23 @@ Acad::ErrorStatus AcDbScrew::setCenter(AcGePoint3d center)
     return Acad::eOk;
 }
 
+//////////////////////////////////////////////////////////////////////////
 Acad::ErrorStatus AcDbScrew::setDirection(AcGeVector3d direction)
 {
     assertWriteEnabled();
-    _direction = direction;
+    _direction = direction.normal();
     return Acad::eOk;
 }
 
+//////////////////////////////////////////////////////////////////////////
 Acad::ErrorStatus AcDbScrew::setNormal(AcGeVector3d normal)
 {
     assertWriteEnabled();
-    _normal = normal;
+    _normal = normal.normal();
     return Acad::eOk;
 }
 
+//////////////////////////////////////////////////////////////////////////
 Acad::ErrorStatus AcDbScrew::setBodyLength(double bodyLength)
 {
     assertWriteEnabled();
@@ -124,6 +129,7 @@ Acad::ErrorStatus AcDbScrew::setBodyLength(double bodyLength)
     return Acad::eOk;
 }
 
+//////////////////////////////////////////////////////////////////////////
 Acad::ErrorStatus AcDbScrew::setHeadHeight(double headHeight)
 {
     assertWriteEnabled();
@@ -131,6 +137,7 @@ Acad::ErrorStatus AcDbScrew::setHeadHeight(double headHeight)
     return Acad::eOk;
 }
 
+//////////////////////////////////////////////////////////////////////////
 Acad::ErrorStatus AcDbScrew::setHeadDiameter(double headDiameter)
 {
     assertWriteEnabled();
@@ -138,6 +145,7 @@ Acad::ErrorStatus AcDbScrew::setHeadDiameter(double headDiameter)
     return Acad::eOk;
 }
 
+//////////////////////////////////////////////////////////////////////////
 Acad::ErrorStatus AcDbScrew::setBodyDiameter(double bodyDiameter)
 {
     assertWriteEnabled();
@@ -145,6 +153,7 @@ Acad::ErrorStatus AcDbScrew::setBodyDiameter(double bodyDiameter)
     return Acad::eOk;
 }
 
+//////////////////////////////////////////////////////////////////////////
 Acad::ErrorStatus AcDbScrew::setTransition(double transition)
 {
     assertWriteEnabled();
@@ -152,25 +161,25 @@ Acad::ErrorStatus AcDbScrew::setTransition(double transition)
     return Acad::eOk;
 }
 
-// Отрисовка
+//////////////////////////////////////////////////////////////////////////
 Adesk::Boolean AcDbScrew::subWorldDraw(AcGiWorldDraw* pWD)
 {
     //Основание
     double totalLength = bodyLength() + headHeight();
-    AcGeVector3d direction = _direction.normal();
+    _normal = direction().crossProduct(direction().normal().perpVector());
     AcGePoint3d bodyPoints[4];
 
-    AcGePoint3d tempPoint = center() + direction.perpVector() * bodyDiameter() / 2;
-    bodyPoints[0] = tempPoint + direction * (totalLength / 2 - headHeight());
-    bodyPoints[1] = tempPoint - direction * totalLength / 2;
-    tempPoint = center() - direction.perpVector() * bodyDiameter() / 2;
-    bodyPoints[2] = tempPoint - direction * totalLength / 2;
-    bodyPoints[3] = tempPoint + direction * (totalLength / 2 - headHeight());
+    AcGePoint3d tempPoint = center() + direction().perpVector() * bodyDiameter() / 2;
+    bodyPoints[0] = tempPoint + direction() * (totalLength / 2 - headHeight());
+    bodyPoints[1] = tempPoint - direction() * totalLength / 2;
+    tempPoint = center() - direction().perpVector() * bodyDiameter() / 2;
+    bodyPoints[2] = tempPoint - direction() * totalLength / 2;
+    bodyPoints[3] = tempPoint + direction() * (totalLength / 2 - headHeight());
     pWD->geometry().polyline(4, bodyPoints);
 
     //Конец
     AcGePoint3d transitionPoints[4];
-    AcGeVector3d transitionVector = direction;
+    AcGeVector3d transitionVector = direction();
     transitionPoints[0] = bodyPoints[2];
     transitionPoints[1] = transitionPoints[0] - transitionVector.rotateBy(-PI / 4, normal())
         * sqrt(2 * pow(transition(), 2));
@@ -181,17 +190,17 @@ Adesk::Boolean AcDbScrew::subWorldDraw(AcGiWorldDraw* pWD)
 
     //Шляпка
     AcGePoint3d headPoints[2];
-    tempPoint = center() + direction * (totalLength / 2 - headHeight());
-    headPoints[0] = tempPoint + direction.perpVector() * headDiameter() / 2;
-    headPoints[1] = tempPoint - direction.perpVector() * headDiameter() / 2;
+    tempPoint = center() + direction() * (totalLength / 2 - headHeight());
+    headPoints[0] = tempPoint + direction().perpVector() * headDiameter() / 2;
+    headPoints[1] = tempPoint - direction().perpVector() * headDiameter() / 2;
     pWD->geometry().polyline(2, headPoints);
-    pWD->geometry().circularArc(center() + direction * (totalLength / 2 - headHeight()),
+    pWD->geometry().circularArc(center() + direction() * (totalLength / 2 - headHeight()),
         headHeight(), normal(), headPoints[1] - headPoints[0], PI);
 
     return Adesk::kTrue;
 }
 
-
+//////////////////////////////////////////////////////////////////////////
 Acad::ErrorStatus AcDbScrew::dwgOutFields(AcDbDwgFiler* pFiler) const
 {
     assertReadEnabled();
@@ -217,6 +226,7 @@ Acad::ErrorStatus AcDbScrew::dwgOutFields(AcDbDwgFiler* pFiler) const
     return pFiler->filerStatus();
 }
 
+//////////////////////////////////////////////////////////////////////////
 Acad::ErrorStatus AcDbScrew::dwgInFields(AcDbDwgFiler* pFiler)
 {
     assertWriteEnabled();
@@ -248,6 +258,7 @@ Acad::ErrorStatus AcDbScrew::dwgInFields(AcDbDwgFiler* pFiler)
     return pFiler->filerStatus();
 }
 
+//////////////////////////////////////////////////////////////////////////
 Acad::ErrorStatus AcDbScrew::subTransformBy(const AcGeMatrix3d& xform)
 {
     assertWriteEnabled();
@@ -257,4 +268,86 @@ Acad::ErrorStatus AcDbScrew::subTransformBy(const AcGeMatrix3d& xform)
     _normal.transformBy(xform);
 
     return Acad::eOk;
+}
+
+//////////////////////////////////////////////////////////////////////////
+Acad::ErrorStatus AcDbScrew::subGetGripPoints(AcGePoint3dArray& gripPoints,
+    AcDbIntArray& osnapModes, AcDbIntArray& geomIds) const
+{
+    assertReadEnabled();
+    AcGePoint3dArray aScrew;
+    aScrew.setLogicalLength(4);
+    
+    aScrew[0] = _center;
+    aScrew[1] = _center - _direction * ((_bodyLength + _headHeight) / 2 + _transition);
+    aScrew[2] = _center - _direction.perpVector() * (_bodyDiameter / 2);
+    aScrew[3] = _center + _direction.perpVector() * (_bodyDiameter / 2);
+
+    gripPoints.append(aScrew);
+
+    return Acad::eOk;
+}
+
+//////////////////////////////////////////////////////////////////////////
+Acad::ErrorStatus AcDbScrew::subMoveGripPointsAt(const AcDbIntArray& indices,
+    const AcGeVector3d& offset)
+{
+    if (indices.length() == 0 || offset.isZeroLength())
+        return Acad::eOk;
+    
+    assertWriteEnabled();
+    
+    
+    for (int i = 0; i < indices.length(); i++)
+    {
+        switch (indices[i])
+        {
+            case 0:
+            {
+                this->setCenter(_center + offset);
+            }
+            break;
+            case 1:
+            {
+                this->setDirection(((_bodyLength + _headHeight) / 2 + _transition)
+                    * (_direction - offset).normalize());
+            }
+            break;
+            case 2:
+            case 3:
+            {
+                double oldDiameter = bodyDiameter();
+                double newDiameter = (offset - (direction() * bodyDiameter() / 2)).length();
+                double keof = newDiameter / oldDiameter;
+
+                setBodyLength(bodyLength() * keof);
+                setHeadHeight(headHeight() * keof);
+                setHeadDiameter(headDiameter() * keof);
+                setBodyDiameter(bodyDiameter() * keof);
+                setTransition(transition() * keof);
+            }
+            break;
+        }
+    }
+    return Acad::eOk;
+}
+
+//////////////////////////////////////////////////////////////////////////
+Acad::ErrorStatus AcDbScrew::subGetGripPoints(AcDbGripDataPtrArray& grips,
+    const double curViewUnitSize,
+    const int gripSize,
+    const AcGeVector3d& curViewDir,
+    const int bitflags) const
+{
+    assertReadEnabled();
+    return Acad::eNotImplementedYet;
+}
+
+//////////////////////////////////////////////////////////////////////////
+Acad::ErrorStatus AcDbScrew::subMoveGripPointsAt(const AcDbVoidPtrArray& appData,
+    const AcGeVector3d& offset,
+    const int bitflags)
+{
+    assertWriteEnabled();
+    return Acad::eNotImplementedYet;
 }

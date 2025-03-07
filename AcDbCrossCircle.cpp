@@ -242,7 +242,7 @@ Acad::ErrorStatus AcDbCrossCircle::subGetGripPoints(AcGePoint3dArray &gripPoints
 Acad::ErrorStatus AcDbCrossCircle::subMoveGripPointsAt(const AcDbIntArray &indices, const AcGeVector3d &offset)
 {
     if (indices.length()== 0 || offset.isZeroLength())
-    return Acad::eOk;
+        return Acad::eOk;
 
     assertWriteEnabled();
 
@@ -296,13 +296,13 @@ Acad::ErrorStatus AcDbCrossCircle::subGetStretchPoints(AcGePoint3dArray& points)
 {
     AcDbIntArray* array = nullptr;
     subGetGripPoints(points, *array, *array);
-    return Acad::eNotImplementedYet;
+    return Acad::eOk;
 }
 
 Acad::ErrorStatus AcDbCrossCircle::subMoveStretchPointsAt(const AcDbIntArray& indices, const AcGeVector3d& offset)
 {
     subMoveGripPointsAt(indices, offset);
-    return Acad::eNotImplementedYet;
+    return Acad::eOk;
 
 }
 

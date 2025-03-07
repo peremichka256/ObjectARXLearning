@@ -155,10 +155,12 @@ void helloNrxScrew()
 {
 	AcDbScrew::rxInit();
 	AcDbScrew* newScrew = new AcDbScrew();
+	ads_point pointNewStrt;
+	int retFirst = acedGetPoint(NULL, L"\nПоставьте точку центра ", pointNewStrt);
 	AcGePoint3d centerPoint;
-	//Вот тут надо переводить из мировой в пользовательскую 
-	int retFirst = acedGetPoint(NULL, L"\nПоставьте точку центра ", asDblArray(centerPoint));
+	acdbUcs2Wcs(pointNewStrt, asDblArray(centerPoint), false);
 	newScrew->setCenter(centerPoint);
+
 	AcGePoint3d directionPoint;
 	int retSecond = acedGetPoint(NULL, L"\nВыберите направления винта ", asDblArray(directionPoint));
 	newScrew->setDirection(directionPoint - centerPoint);
@@ -168,6 +170,17 @@ void helloNrxScrew()
 		addToModelSpace(newScrew->objectId(), newScrew);
 		newScrew->close();
 	}
+}
+
+void helloNrxScrewJig()
+{
+	AcDbScrew::rxInit();
+	AcDbScrew* pScrew = new AcDbScrew();
+	pScrew->setDirection(AcGeVector3d::kYAxis);
+	ScrewJig* pScrewJig = new ScrewJig();
+
+	pScrewJig->startJig(pScrew);
+	delete pScrewJig;
 }
 
 // EntryPoint
@@ -202,6 +215,11 @@ ncrxEntryPoint(NcRx::AppMsgCode msg, void* pkt)
 			L"Screw",
 			ACRX_CMD_TRANSPARENT,
 			helloNrxScrew);
+		ncedRegCmds->addCommand(L"HELLONRX_GROUP",
+			L"_ScrewJig",
+			L"ScrewJig",
+			ACRX_CMD_TRANSPARENT,
+			helloNrxScrewJig);
 		break;
 	case NcRx::kUnloadAppMsg:   
 		acedRegCmds->removeGroup(L"HELLONRX_GROUP");
