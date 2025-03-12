@@ -10,9 +10,14 @@ public:
 	~ScrewJig();
 	AcEdJig::DragStatus startJig(AcDbScrew*);
 private:
-	int mCurrentInputLevel; 
+	int mCurrentInputLevel;
+	double _length;
+	double _headDiameter;
+
 	AcEdJig::DragStatus GetStartPoint();
 	AcEdJig::DragStatus GetDirectionPoint();
+	AcEdJig::DragStatus GetLength();
+	AcEdJig::DragStatus GetHeadDiameter();
 protected:
 	virtual Adesk::Boolean update();
 	virtual DragStatus sampler();

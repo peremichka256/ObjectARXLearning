@@ -2,7 +2,6 @@
 //
 
 #include "pch.h"
-#include "framework.h"
 #include "HelloNRX.h"
 
 #ifdef _DEBUG
@@ -156,14 +155,69 @@ void helloNrxScrew()
 	AcDbScrew::rxInit();
 	AcDbScrew* newScrew = new AcDbScrew();
 	ads_point pointNewStrt;
-	int retFirst = acedGetPoint(NULL, L"\nПоставьте точку центра ", pointNewStrt);
+	int retFirst = acedGetPoint(NULL, L"\nПоставьте базовую точку: ", pointNewStrt);
 	AcGePoint3d centerPoint;
 	acdbUcs2Wcs(pointNewStrt, asDblArray(centerPoint), false);
 	newScrew->setCenter(centerPoint);
 
 	AcGePoint3d directionPoint;
-	int retSecond = acedGetPoint(NULL, L"\nВыберите направления винта ", asDblArray(directionPoint));
+	int retSecond = acedGetPoint(NULL, L"\nВыберите направления винта: ", asDblArray(directionPoint));
 	newScrew->setDirection(directionPoint - centerPoint);
+
+	nds_real length;
+	int retThird = acedGetReal(L"\nВведите длину винта: ", &length);
+	newScrew->setBodyLength(length);
+
+	std::wstring kwds = to_wstring(newScrew->eFirst) + L" "
+		+ to_wstring(newScrew->eSecond) + L" "
+		+ to_wstring(newScrew->eThird) + L" "
+		+ to_wstring(newScrew->eFourth) + L" "
+		+ to_wstring(newScrew->eFifth) + L" "
+		+ to_wstring(newScrew->eSixth) + L" "
+		+ to_wstring(newScrew->eSeventh) + L" "
+		+ to_wstring(newScrew->eEighth) + L" "
+		+ to_wstring(newScrew->eNinth) + L" "
+		+ to_wstring(newScrew->eTenth);
+	acedInitGet(0, kwds.c_str());
+
+	std::wstring prompt = L"\nВыберите высоту шляпки [" 
+		+ to_wstring(newScrew->eFirst) + L"/"
+		+ to_wstring(newScrew->eSecond) + L"/"
+		+ to_wstring(newScrew->eThird) + L"/"
+		+ to_wstring(newScrew->eFourth) + L"/"
+		+ to_wstring(newScrew->eFifth) + L"/"
+		+ to_wstring(newScrew->eSixth) + L"/"
+		+ to_wstring(newScrew->eSeventh) + L"/"
+		+ to_wstring(newScrew->eEighth) + L"/"
+		+ to_wstring(newScrew->eNinth) + L"/"
+		+ to_wstring(newScrew->eTenth) + L"]: ";
+	wchar_t userInput[10];
+
+	int retFourth = acedGetKword(prompt.c_str(), userInput);
+
+	if (retFourth == RTNORM)
+	{
+		int headDiameter = _wtoi(userInput);
+
+		switch (headDiameter)
+		{
+		case newScrew->eFirst:
+		case newScrew->eSecond:
+		case newScrew->eThird:
+		case newScrew->eFourth:
+		case newScrew->eFifth:
+		case newScrew->eSixth:
+		case newScrew->eSeventh:
+		case newScrew->eEighth:
+		case newScrew->eNinth:
+		case newScrew->eTenth:
+			newScrew->setHeadDiameter(static_cast<AcDbScrew::eHeadHeight>(headDiameter));
+			break;
+		default:
+			acutPrintf(L"Некорректная высота шляпки");
+			break;
+		}
+	}
 
 	if (retFirst != RTCAN)
 	{
@@ -176,7 +230,6 @@ void helloNrxScrewJig()
 {
 	AcDbScrew::rxInit();
 	AcDbScrew* pScrew = new AcDbScrew();
-	pScrew->setDirection(AcGeVector3d::kYAxis);
 	ScrewJig* pScrewJig = new ScrewJig();
 
 	pScrewJig->startJig(pScrew);
