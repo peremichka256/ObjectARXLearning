@@ -1,17 +1,20 @@
 #include "pch.h"
 #include "ScrewJig.h"
 
+//////////////////////////////////////////////////////////////////////////
 ScrewJig::ScrewJig() : AcEdJig(),
 mCurrentInputLevel(0), screw(NULL)
 {
 
 }
 
+//////////////////////////////////////////////////////////////////////////
 ScrewJig::~ScrewJig()
 {
 
 }
 
+//////////////////////////////////////////////////////////////////////////
 AcEdJig::DragStatus ScrewJig::startJig(AcDbScrew* pEntity)
 {
     screw = pEntity;
@@ -20,7 +23,7 @@ AcEdJig::DragStatus ScrewJig::startJig(AcDbScrew* pEntity)
       _T("\nПоставьте базовую точку: "),
       _T("\nВыберите направления винта: "),
       _T("\nВведите длину винта: "),
-      _T("\nВыберите тип шляпки: ")
+      _T("\nВыберите диаметр винта: ")
     };
 
     bool appendOk = true;
@@ -67,6 +70,7 @@ AcEdJig::DragStatus ScrewJig::startJig(AcDbScrew* pEntity)
     return status;
 }
 
+//////////////////////////////////////////////////////////////////////////
 AcEdJig::DragStatus ScrewJig::sampler()
 {
     AcEdJig::UserInputControls userInputControls[4] =
@@ -107,7 +111,7 @@ AcEdJig::DragStatus ScrewJig::sampler()
         status = GetLength();
         break;
     case 4:
-        status = GetHeadDiameter();
+        status = GetDiameter();
         break;
     default:
         break;
@@ -115,6 +119,7 @@ AcEdJig::DragStatus ScrewJig::sampler()
     return status;
 }
 
+//////////////////////////////////////////////////////////////////////////
 Adesk::Boolean ScrewJig::update()
 {
     switch (mCurrentInputLevel + 1)
@@ -134,7 +139,7 @@ Adesk::Boolean ScrewJig::update()
         break;
         case 2:
         {
-            AcGeVector3d acqVector = mInputPoints[mCurrentInputLevel] - mInputPoints[mCurrentInputLevel - 1];
+            AcGeVector3d acqVector = mInputPoints[mCurrentInputLevel] - mInputPoints[0];
 
             if (acqVector.isZeroLength())
             {
@@ -151,7 +156,7 @@ Adesk::Boolean ScrewJig::update()
         break;
         case 4:
         {
-            screw->setHeadDiameter(_headDiameter);
+            screw->setBodyDiameter(_diameter);
         }
         break;
         default:
@@ -160,11 +165,13 @@ Adesk::Boolean ScrewJig::update()
     return Acad::eOk;
 }
 
+//////////////////////////////////////////////////////////////////////////
 AcDbEntity* ScrewJig::entity() const
 {
     return ((AcDbEntity*)screw);
 }
 
+//////////////////////////////////////////////////////////////////////////
 AcEdJig::DragStatus ScrewJig::GetStartPoint()
 {
     AcGePoint3d newPoint;
@@ -182,10 +189,11 @@ AcEdJig::DragStatus ScrewJig::GetStartPoint()
     return status;
 }
 
+//////////////////////////////////////////////////////////////////////////
 AcEdJig::DragStatus ScrewJig::GetDirectionPoint()
 {
     AcGePoint3d newPoint;
-    AcEdJig::DragStatus status = acquirePoint(newPoint, mInputPoints[mCurrentInputLevel - 1]);
+    AcEdJig::DragStatus status = acquirePoint(newPoint, mInputPoints[0]);
 
     if (status == AcEdJig::kNormal)
     {
@@ -199,10 +207,11 @@ AcEdJig::DragStatus ScrewJig::GetDirectionPoint()
     return status;
 }
 
+//////////////////////////////////////////////////////////////////////////
 AcEdJig::DragStatus ScrewJig::GetLength()
 {
     double length;
-    AcEdJig::DragStatus status = acquireDist(length, mInputPoints[mCurrentInputLevel - 2]);
+    AcEdJig::DragStatus status = acquireDist(length, mInputPoints[0]);
 
     if (status == AcEdJig::kNormal)
     {
@@ -211,57 +220,15 @@ AcEdJig::DragStatus ScrewJig::GetLength()
     return status;
 }
 
-AcEdJig::DragStatus ScrewJig::GetHeadDiameter()
+//////////////////////////////////////////////////////////////////////////
+AcEdJig::DragStatus ScrewJig::GetDiameter()
 {
-    std::wstring kwds = to_wstring(screw->eFirst) + L" "
-        + to_wstring(screw->eSecond) + L" "
-        + to_wstring(screw->eThird) + L" "
-        + to_wstring(screw->eFourth) + L" "
-        + to_wstring(screw->eFifth) + L" "
-        + to_wstring(screw->eSixth) + L" "
-        + to_wstring(screw->eSeventh) + L" "
-        + to_wstring(screw->eEighth) + L" "
-        + to_wstring(screw->eNinth) + L" "
-        + to_wstring(screw->eTenth);
-    acedInitGet(0, kwds.c_str());
+    double diameter;
+    AcEdJig::DragStatus status = acquireDist(diameter, mInputPoints[0]);
 
-    std::wstring prompt = L"\nВыберите высоту шляпки ["
-        + to_wstring(screw->eFirst) + L"/"
-        + to_wstring(screw->eSecond) + L"/"
-        + to_wstring(screw->eThird) + L"/"
-        + to_wstring(screw->eFourth) + L"/"
-        + to_wstring(screw->eFifth) + L"/"
-        + to_wstring(screw->eSixth) + L"/"
-        + to_wstring(screw->eSeventh) + L"/"
-        + to_wstring(screw->eEighth) + L"/"
-        + to_wstring(screw->eNinth) + L"/"
-        + to_wstring(screw->eTenth) + L"]: ";
-    wchar_t userInput[10];
-
-    int retFourth = acedGetKword(prompt.c_str(), userInput);
-
-    if (retFourth == RTNORM)
+    if (status == AcEdJig::kNormal)
     {
-        int headDiameter = _wtoi(userInput);
-
-        switch (headDiameter)
-        {
-        case screw->eFirst:
-        case screw->eSecond:
-        case screw->eThird:
-        case screw->eFourth:
-        case screw->eFifth:
-        case screw->eSixth:
-        case screw->eSeventh:
-        case screw->eEighth:
-        case screw->eNinth:
-        case screw->eTenth:
-            _headDiameter = static_cast<AcDbScrew::eHeadHeight>(headDiameter);
-            break;
-        default:
-            acutPrintf(L"Некорректная высота шляпки");
-            break;
-        }
+        _diameter = diameter;
     }
-    return AcEdJig::kNormal;
+    return status;
 }

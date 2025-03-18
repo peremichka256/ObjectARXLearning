@@ -12,12 +12,12 @@ public:
 private:
 	int mCurrentInputLevel;
 	double _length;
-	double _headDiameter;
+	double _diameter;
 
 	AcEdJig::DragStatus GetStartPoint();
 	AcEdJig::DragStatus GetDirectionPoint();
 	AcEdJig::DragStatus GetLength();
-	AcEdJig::DragStatus GetHeadDiameter();
+	AcEdJig::DragStatus GetDiameter();
 protected:
 	virtual Adesk::Boolean update();
 	virtual DragStatus sampler();

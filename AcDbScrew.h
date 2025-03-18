@@ -29,7 +29,6 @@ public:
 	Acad::ErrorStatus setDirection(AcGeVector3d);
 	Acad::ErrorStatus setNormal(AcGeVector3d);
 	Acad::ErrorStatus setBodyLength(double);
-	Acad::ErrorStatus setHeadDiameter(double);
 	Acad::ErrorStatus setBodyDiameter(double);
 	Acad::ErrorStatus setTransition(double);
 
@@ -38,33 +37,46 @@ public:
 
 	enum eGripIndex
 	{
-		eCenter			= 0,
-		eRotate			= 1,
-		eLength			= 2,
-		eScaleFirst		= 3,
-		eScaleSecond	= 4
+		eCenter		= 0,
+		eRotate		= 1,
+		eLength		= 2,
+		eScale		= 3,
+		eDiameter	= 4
 	};
 
-	enum eHeadHeight
+	static enum eDiameter
 	{
-		eFirst		= 1200,
-		eSecond		= 1400,
-		eThird		= 1600,
-		eFourth		= 1800,
-		eFifth		= 2000,
-		eSixth		= 2200,
-		eSeventh	= 2400,
-		eEighth		= 2600,
-		eNinth		= 2800,
-		eTenth		= 3000,
+		eFirst		= 10,
+		eSecond		= 12,
+		eThird		= 14,
+		eFourth		= 16,
+		eFifth		= 18,
+		eSixth		= 20,
+		eSeventh	= 22,
+		eEighth		= 24,
+		eNinth		= 27,
+		eTenth		= 30,
+	};
+
+	std::vector<int> diameterValues = 
+	{
+		AcDbScrew::eDiameter::eFirst,
+		AcDbScrew::eDiameter::eSecond,
+		AcDbScrew::eDiameter::eThird,
+		AcDbScrew::eDiameter::eFourth,
+		AcDbScrew::eDiameter::eFifth,
+		AcDbScrew::eDiameter::eSixth,
+		AcDbScrew::eDiameter::eSeventh,
+		AcDbScrew::eDiameter::eEighth,
+		AcDbScrew::eDiameter::eNinth,
+		AcDbScrew::eDiameter::eTenth 
 	};
 
 protected:
 	static Adesk::UInt32 kCurrentVersionNumber;
-	// AcDbEntity
 	virtual Adesk::Boolean subWorldDraw(AcGiWorldDraw* pWD) override;
 	virtual Acad::ErrorStatus subTransformBy(const AcGeMatrix3d& xform) override;
-	// Ручки
+	// Работа грипов
 	virtual Acad::ErrorStatus subGetGripPoints(AcDbGripDataPtrArray& grips,
 		const double curViewUnitSize,
 		const int gripSize,
@@ -77,9 +89,19 @@ protected:
 		const int bitflags);
 	virtual Acad::ErrorStatus subMoveGripPointsAt(const AcDbIntArray& indices,
 		const AcGeVector3d& offset) override;
+	virtual void subGripStatus(const AcDb::GripStat status) override;
 
 private:
+	//Данные о грипах
+	struct GripData
+	{
+		int index;
+	};
+	const int GRIPS_COUNT = 4;
+	GripData** _gripsData = new GripData*[GRIPS_COUNT];
+
 	// Параметры винта
+	const double HEAD_DIAMETER_TO_BODY_DIAMETER_KOEF = 1.8;
 	AcGePoint3d _center;
 	AcGeVector3d _direction;
 	AcGeVector3d _normal;

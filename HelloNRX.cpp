@@ -168,57 +168,6 @@ void helloNrxScrew()
 	int retThird = acedGetReal(L"\nВведите длину винта: ", &length);
 	newScrew->setBodyLength(length);
 
-	std::wstring kwds = to_wstring(newScrew->eFirst) + L" "
-		+ to_wstring(newScrew->eSecond) + L" "
-		+ to_wstring(newScrew->eThird) + L" "
-		+ to_wstring(newScrew->eFourth) + L" "
-		+ to_wstring(newScrew->eFifth) + L" "
-		+ to_wstring(newScrew->eSixth) + L" "
-		+ to_wstring(newScrew->eSeventh) + L" "
-		+ to_wstring(newScrew->eEighth) + L" "
-		+ to_wstring(newScrew->eNinth) + L" "
-		+ to_wstring(newScrew->eTenth);
-	acedInitGet(0, kwds.c_str());
-
-	std::wstring prompt = L"\nВыберите высоту шляпки [" 
-		+ to_wstring(newScrew->eFirst) + L"/"
-		+ to_wstring(newScrew->eSecond) + L"/"
-		+ to_wstring(newScrew->eThird) + L"/"
-		+ to_wstring(newScrew->eFourth) + L"/"
-		+ to_wstring(newScrew->eFifth) + L"/"
-		+ to_wstring(newScrew->eSixth) + L"/"
-		+ to_wstring(newScrew->eSeventh) + L"/"
-		+ to_wstring(newScrew->eEighth) + L"/"
-		+ to_wstring(newScrew->eNinth) + L"/"
-		+ to_wstring(newScrew->eTenth) + L"]: ";
-	wchar_t userInput[10];
-
-	int retFourth = acedGetKword(prompt.c_str(), userInput);
-
-	if (retFourth == RTNORM)
-	{
-		int headDiameter = _wtoi(userInput);
-
-		switch (headDiameter)
-		{
-		case newScrew->eFirst:
-		case newScrew->eSecond:
-		case newScrew->eThird:
-		case newScrew->eFourth:
-		case newScrew->eFifth:
-		case newScrew->eSixth:
-		case newScrew->eSeventh:
-		case newScrew->eEighth:
-		case newScrew->eNinth:
-		case newScrew->eTenth:
-			newScrew->setHeadDiameter(static_cast<AcDbScrew::eHeadHeight>(headDiameter));
-			break;
-		default:
-			acutPrintf(L"Некорректная высота шляпки");
-			break;
-		}
-	}
-
 	if (retFirst != RTCAN)
 	{
 		addToModelSpace(newScrew->objectId(), newScrew);
