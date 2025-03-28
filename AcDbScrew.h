@@ -35,15 +35,14 @@ public:
 	virtual Acad::ErrorStatus dwgOutFields(AcDbDwgFiler* pFiler) const override;
 	virtual Acad::ErrorStatus dwgInFields(AcDbDwgFiler* pFiler) override;
 
-	enum eGripIndex
+	//Грипы
+	static enum eGripIndex
 	{
 		eCenter		= 0,
 		eRotate		= 1,
 		eLength		= 2,
-		eScale		= 3,
-		eDiameter	= 4
+		eScale		= 3
 	};
-
 	static enum eDiameter
 	{
 		eFirst		= 10,
@@ -57,9 +56,7 @@ public:
 		eNinth		= 27,
 		eTenth		= 30,
 	};
-
-	std::vector<int> diameterValues = 
-	{
+	const std::vector<int> diameterValues = {
 		AcDbScrew::eDiameter::eFirst,
 		AcDbScrew::eDiameter::eSecond,
 		AcDbScrew::eDiameter::eThird,
@@ -71,23 +68,29 @@ public:
 		AcDbScrew::eDiameter::eNinth,
 		AcDbScrew::eDiameter::eTenth 
 	};
+	bool _isLengthChanged;
 
 protected:
 	static Adesk::UInt32 kCurrentVersionNumber;
 	virtual Adesk::Boolean subWorldDraw(AcGiWorldDraw* pWD) override;
 	virtual Acad::ErrorStatus subTransformBy(const AcGeMatrix3d& xform) override;
 	// Работа грипов
-	virtual Acad::ErrorStatus subGetGripPoints(AcDbGripDataPtrArray& grips,
+	virtual Acad::ErrorStatus subGetGripPoints(
+		AcDbGripDataPtrArray& grips,
 		const double curViewUnitSize,
 		const int gripSize,
 		const AcGeVector3d& curViewDir,
 		const int bitflags) const;
-	virtual Acad::ErrorStatus subGetGripPoints(AcGePoint3dArray& gripPoints,
-		AcDbIntArray& osnapModes, AcDbIntArray& geomIds) const override;
-	virtual Acad::ErrorStatus subMoveGripPointsAt(const AcDbVoidPtrArray& appData,
+	virtual Acad::ErrorStatus subGetGripPoints(
+		AcGePoint3dArray& gripPoints,
+		AcDbIntArray& osnapModes,
+		AcDbIntArray& geomIds) const override;
+	virtual Acad::ErrorStatus subMoveGripPointsAt(
+		const AcDbVoidPtrArray& appData,
 		const AcGeVector3d& offset,
 		const int bitflags);
-	virtual Acad::ErrorStatus subMoveGripPointsAt(const AcDbIntArray& indices,
+	virtual Acad::ErrorStatus subMoveGripPointsAt(
+		const AcDbIntArray& indices,
 		const AcGeVector3d& offset) override;
 	virtual void subGripStatus(const AcDb::GripStat status) override;
 
@@ -97,8 +100,12 @@ private:
 	{
 		int index;
 	};
-	const int GRIPS_COUNT = 4;
-	GripData** _gripsData = new GripData*[GRIPS_COUNT];
+	mutable std::vector<GripData*> _gripsData ={
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+	};
 
 	// Параметры винта
 	const double HEAD_DIAMETER_TO_BODY_DIAMETER_KOEF = 1.8;
@@ -109,4 +116,19 @@ private:
 	double _headDiameter;
 	double _bodyDiameter;
 	double _transition;
+
+	//Кэширование геометрии
+	static enum eEntityIndex
+	{
+		eHead = 0,
+		eBody = 1,
+		eThread = 2,
+	};
+	mutable std::vector<AcDb3dSolid*> _cachedGeometry = {
+		nullptr,
+		nullptr,
+		nullptr
+	};
+	bool _isGeometryActual;
+	void reBuild(AcGiWorldDraw*);
 };

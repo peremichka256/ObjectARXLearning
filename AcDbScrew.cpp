@@ -24,9 +24,10 @@ ACRX_DXF_DEFINE_MEMBERS(
 //////////////////////////////////////////////////////////////////////////
 AcDbScrew::AcDbScrew() : AcDbEntity()
 {
+    _isGeometryActual = false;
     setDirection(AcGeVector3d::kYAxis);
-    setBodyLength(eFifth * 5);
     setBodyDiameter(eFifth);
+    setBodyLength(eFifth * 5);
     setTransition(eFifth / 5);
 }
 
@@ -34,8 +35,14 @@ AcDbScrew::AcDbScrew() : AcDbEntity()
 //////////////////////////////////////////////////////////////////////////
 AcDbScrew::~AcDbScrew()
 {
-    delete[]_gripsData;
-    _gripsData = nullptr;
+    _gripsData.clear();
+
+
+    for (AcDb3dSolid* entity : _cachedGeometry)
+    {
+        delete entity;
+    }
+    _cachedGeometry.clear();
 }
 
 // Методы чтения и записи параметров
@@ -95,6 +102,7 @@ Acad::ErrorStatus AcDbScrew::setCenter(AcGePoint3d center)
 {
     assertWriteEnabled();
     _center = center;
+    _isGeometryActual = false;
     return Acad::eOk;
 }
 
@@ -103,6 +111,8 @@ Acad::ErrorStatus AcDbScrew::setDirection(AcGeVector3d direction)
 {
     assertWriteEnabled();
     _direction = direction.normal();
+    _normal = _direction.crossProduct(_direction.normal().perpVector());
+    _isGeometryActual = false;
     return Acad::eOk;
 }
 
@@ -111,6 +121,7 @@ Acad::ErrorStatus AcDbScrew::setNormal(AcGeVector3d normal)
 {
     assertWriteEnabled();
     _normal = normal.normal();
+    _isGeometryActual = false;
     return Acad::eOk;
 }
 
@@ -119,6 +130,7 @@ Acad::ErrorStatus AcDbScrew::setBodyLength(double bodyLength)
 {
     assertWriteEnabled();
     _bodyLength = bodyLength;
+    _isGeometryActual = false;
     return Acad::eOk;
 }
 
@@ -131,7 +143,7 @@ Acad::ErrorStatus AcDbScrew::setBodyDiameter(double bodyDiameter)
 
     for (int i = 0; i < diameterValues.size(); i++)
     {
-        abs[i] = std::abs(bodyDiameter -diameterValues[i]);
+        abs[i] = std::abs(bodyDiameter - diameterValues[i]);
     }
 
     int nearestDiameterIndex = 0;
@@ -178,6 +190,7 @@ Acad::ErrorStatus AcDbScrew::setBodyDiameter(double bodyDiameter)
     }
     _headDiameter = bodyDiameter * HEAD_DIAMETER_TO_BODY_DIAMETER_KOEF;
     _bodyDiameter = bodyDiameter;
+    _isGeometryActual = false; 
     return Acad::eOk;
 }
 
@@ -186,61 +199,96 @@ Acad::ErrorStatus AcDbScrew::setTransition(double transition)
 {
     assertWriteEnabled();
     _transition = transition;
+    _isGeometryActual = false;
     return Acad::eOk;
+}
+
+//////////////////////////////////////////////////////////////////////////
+void AcDbScrew::reBuild(AcGiWorldDraw* pWD)
+{
+    if (_isLengthChanged)
+    {
+        if (_cachedGeometry[eBody] != nullptr)
+        {
+            _cachedGeometry[eBody]->close();
+            _cachedGeometry[eBody] = nullptr;
+        }
+        if (_cachedGeometry[eThread] != nullptr)
+        {
+            _cachedGeometry[eThread]->close();
+            _cachedGeometry[eThread] = nullptr;
+        }
+    }
+    else
+    {
+        for (AcDb3dSolid* entity : _cachedGeometry)
+        {
+            if (entity != nullptr)
+            {
+                entity->close();
+            }
+        }
+    }
+
+    //Тело
+    AcDb3dSolid* body = new AcDb3dSolid();
+    AcDbCircle circle;
+    circle.setCenter(center());
+    circle.setNormal(direction());
+    circle.setRadius(bodyDiameter() / 2);
+    AcDbSweepOptions options;
+    body->createExtrudedSolid(&circle, -direction() * bodyLength(), options);
+    _cachedGeometry[eBody] = body;
+
+    //Резьба
+    AcDb3dSolid* thread = new AcDb3dSolid();
+    thread->createFrustum(transition(), bodyDiameter() / 2,
+        bodyDiameter() / 2, bodyDiameter() / 2 - transition());
+    AcGePoint3d threadCenter = center() - direction() * (bodyLength() + transition() / 2);
+    AcGeMatrix3d matrix;
+    matrix.setToTranslation(threadCenter.asVector());
+    thread->transformBy(matrix);
+    AcGeVector3d rotationAxis = normal().crossProduct(direction());
+    rotationAxis.normalize();
+    matrix.setToRotation(-PI / 2, rotationAxis, threadCenter);
+    thread->transformBy(matrix);
+    _cachedGeometry[eThread] = thread;
+
+    _isGeometryActual = true;
+
+    if (_isLengthChanged)
+    {
+        _isLengthChanged = false;
+        return;
+    }
+
+    //Шляпка
+    AcDb3dSolid* head = new AcDb3dSolid();
+    head->createSphere(headDiameter() / 2);
+
+    matrix.setToTranslation(center().asVector());
+    head->transformBy(matrix);
+    circle.setCenter(center());
+    circle.setNormal(direction());
+    circle.setRadius(headDiameter() / 2);
+    AcDb3dSolid barier;
+    barier.createExtrudedSolid(&circle, -direction() * headDiameter() / 2, options);
+    head->booleanOper(AcDb::kBoolSubtract, &barier);
+    _cachedGeometry[eHead] = head;
 }
 
 //////////////////////////////////////////////////////////////////////////
 Adesk::Boolean AcDbScrew::subWorldDraw(AcGiWorldDraw* pWD)
 {
-    //Основание
-    _normal = direction().crossProduct(direction().normal().perpVector());
-    AcGePoint3d bodyPoints[4];
+    if (!_isGeometryActual) 
+    {
+        reBuild(pWD);
+    }
 
-    //Тело
-    AcGePoint3d bodyPoint = center() + direction().perpVector() * bodyDiameter() / 2;
-    bodyPoints[0] = bodyPoint;
-    bodyPoints[1] = bodyPoint - direction() * bodyLength();
-    bodyPoint = center() - direction().perpVector() * bodyDiameter() / 2;
-    bodyPoints[2] = bodyPoint - direction() * bodyLength();
-    bodyPoints[3] = bodyPoint;
-    pWD->geometry().polyline(4, bodyPoints);
-
-    //Шляпка
-    AcGePoint3d headPoints[2];
-    headPoints[0] = center() + direction().perpVector() * headDiameter() / 2;
-    headPoints[1] = center() - direction().perpVector() * headDiameter() / 2;
-    pWD->geometry().polyline(2, headPoints);
-    pWD->geometry().circularArc(center(), headDiameter() / 2,
-        normal(), headPoints[1] - headPoints[0], PI);
-
-    //Начало резьбы
-    AcGePoint3d transitionPoints[4];
-    AcGeVector3d transitionVector = direction();
-    transitionPoints[0] = bodyPoints[1];
-    transitionPoints[1] = transitionPoints[0] - transitionVector.rotateBy(PI / 4, normal())
-            * sqrt(2 * pow(transition(), 2));
-    transitionPoints[3] = bodyPoints[2];
-    transitionPoints[2] = transitionPoints[3] - transitionVector.rotateBy(-PI / 2, normal())
-            * sqrt(2 * pow(transition(), 2));
-    pWD->geometry().polyline(4, transitionPoints);
-
-    /////////////////////
-    AcDbCircle circle;
-    circle.setCenter(center());
-    circle.setNormal(direction());
-    circle.setRadius(headDiameter() / 2);
-
-    AcDbSweepOptions options;
-
-    AcDb3dSolid head;
-    head.createExtrudedSolid(&circle, direction() * headDiameter() / 2, options);
-    circle.setRadius(bodyDiameter() / 2);
-
-    AcDb3dSolid body;
-    body.createExtrudedSolid(&circle, -direction() * (bodyLength() + transition()), options);
-    pWD->geometry().draw(head.drawable());
-    pWD->geometry().draw(body.drawable());
-    /////////////////////
+    for (AcDb3dSolid* entity : _cachedGeometry)
+    {
+        pWD->geometry().draw(entity->drawable());
+    }
 
     return Adesk::kTrue;
 }
@@ -468,8 +516,8 @@ AcGeVector3d setDimValueCbackFunc(AcDbDimData* pDimData,
         return newOffset;
     }
 
-    // Обновляем длину винта
     pScrew->setBodyLength(newValue);
+    pScrew->_isLengthChanged = true;
 
     return newOffset;
 }
@@ -518,7 +566,8 @@ void lengthDimensionFunc(AcDbGripData* pThis,
     pDimData->setDimEditable(true);
     pDimData->setDimValueFunc(setDimValueCbackFunc);
 
-    dimDataArr.append(pDimData);
+    dimDataArr.append(pDimData); 
+    pScrew->close();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -533,16 +582,14 @@ Acad::ErrorStatus AcDbScrew::subGetGripPoints(AcDbGripDataPtrArray& grips,
     // Грип на базовой точке винта
     auto centerGrip = make_unique<AcDbGripData>();
     centerGrip->setGripPoint(_center);
-    GripData* centerGripData = new GripData{ eCenter };
-    _gripsData[eCenter] = centerGripData;
+    _gripsData[eCenter] = new GripData{ eCenter };
     centerGrip->setAppData(_gripsData[eCenter]);
     grips.append(centerGrip.release());
 
     // Грип за пределами винта
     auto rotateGrip = make_unique<AcDbGripData>();
     rotateGrip->setGripPoint(_center - _direction * (_bodyLength + _transition * 5));
-    GripData* rotateGripData = new GripData{ eRotate };
-    _gripsData[eRotate] = rotateGripData;
+    _gripsData[eRotate] = new GripData{ eRotate };
     rotateGrip->setAppData(_gripsData[eRotate]);
     rotateGrip->setWorldDraw(rotateGripWorldDraw);
     rotateGrip->setToolTipFunc(rotateGripToolTip);
@@ -551,8 +598,7 @@ Acad::ErrorStatus AcDbScrew::subGetGripPoints(AcDbGripDataPtrArray& grips,
     // Грип на конце винта
     auto lengthGrip = make_unique<AcDbGripData>();
     lengthGrip->setGripPoint(_center - _direction * (_bodyLength + _transition));
-    GripData* lengthGripData = new GripData{ eLength };
-    _gripsData[eLength] = lengthGripData;
+    _gripsData[eLength] = new GripData{ eLength };
     lengthGrip->setAppData(_gripsData[eLength]);
     lengthGrip->setWorldDraw(lengthGripWorldDraw);
     lengthGrip->setHoverDimensionFunc(lengthDimensionFunc);
@@ -563,8 +609,7 @@ Acad::ErrorStatus AcDbScrew::subGetGripPoints(AcDbGripDataPtrArray& grips,
     auto scaleGripFirst = make_unique<AcDbGripData>();
     scaleGripFirst->setGripPoint(_center - (_direction * _bodyLength / 2)
         - _direction.perpVector() * (_bodyDiameter / 2));
-    GripData* scaleGripFirstData = new GripData{ eScale };
-    _gripsData[eScale] = scaleGripFirstData;
+    _gripsData[eScale] = new GripData{ eScale };
     scaleGripFirst->setAppData(_gripsData[eScale]);
     scaleGripFirst->setWorldDraw(scaleGripWorldDraw);
     grips.append(scaleGripFirst.release());
@@ -581,7 +626,6 @@ Acad::ErrorStatus AcDbScrew::subMoveGripPointsAt(const AcDbVoidPtrArray& appData
 
     if (appData.length() == 0 || offset.isZeroLength())
         return Acad::eOk;
-    static bool isLengthInputRequested = false;
 
     for (int i = 0; i < appData.length(); i++)
     {
@@ -606,13 +650,11 @@ Acad::ErrorStatus AcDbScrew::subMoveGripPointsAt(const AcDbVoidPtrArray& appData
             double newDiameter = (offset - (direction() * bodyDiameter() / 2)).length();
             double keof = newDiameter / oldDiameter;
 
-            setBodyLength(bodyLength() * keof);
             setBodyDiameter(bodyDiameter() * keof);
         }
         break;
         }
     }
-    isLengthInputRequested = false;
 
     return Acad::eOk;
 }
@@ -622,9 +664,12 @@ void AcDbScrew::subGripStatus(const AcDb::GripStat status)
 {
     if (status == AcDb::kGripsToBeDeleted)
     {
-        for (int i = 0; i < GRIPS_COUNT; i++)
+        for (auto* gripData : _gripsData) 
         {
-            delete _gripsData[i];
+            if (gripData != nullptr) 
+            {
+                delete gripData;
+            }
         }
     }
 };
