@@ -130,5 +130,5 @@ private:
 		nullptr
 	};
 	bool _isGeometryActual;
-	void reBuild(AcGiWorldDraw*);
+	void reBuild();
 };

@@ -24,7 +24,6 @@ ACRX_DXF_DEFINE_MEMBERS(
 //////////////////////////////////////////////////////////////////////////
 AcDbScrew::AcDbScrew() : AcDbEntity()
 {
-    _isGeometryActual = false;
     setDirection(AcGeVector3d::kYAxis);
     setBodyDiameter(eFifth);
     setBodyLength(eFifth * 5);
@@ -36,7 +35,6 @@ AcDbScrew::AcDbScrew() : AcDbEntity()
 AcDbScrew::~AcDbScrew()
 {
     _gripsData.clear();
-
 
     for (AcDb3dSolid* entity : _cachedGeometry)
     {
@@ -191,6 +189,7 @@ Acad::ErrorStatus AcDbScrew::setBodyDiameter(double bodyDiameter)
     _headDiameter = bodyDiameter * HEAD_DIAMETER_TO_BODY_DIAMETER_KOEF;
     _bodyDiameter = bodyDiameter;
     _isGeometryActual = false; 
+    delete abs;
     return Acad::eOk;
 }
 
@@ -204,30 +203,15 @@ Acad::ErrorStatus AcDbScrew::setTransition(double transition)
 }
 
 //////////////////////////////////////////////////////////////////////////
-void AcDbScrew::reBuild(AcGiWorldDraw* pWD)
+void AcDbScrew::reBuild()
 {
-    if (_isLengthChanged)
+    if (!_cachedGeometry[eBody])
     {
-        if (_cachedGeometry[eBody] != nullptr)
-        {
-            _cachedGeometry[eBody]->close();
-            _cachedGeometry[eBody] = nullptr;
-        }
-        if (_cachedGeometry[eThread] != nullptr)
-        {
-            _cachedGeometry[eThread]->close();
-            _cachedGeometry[eThread] = nullptr;
-        }
+        delete _cachedGeometry[eBody];
     }
-    else
+    if (!_cachedGeometry[eThread])
     {
-        for (AcDb3dSolid* entity : _cachedGeometry)
-        {
-            if (entity != nullptr)
-            {
-                entity->close();
-            }
-        }
+        delete _cachedGeometry[eThread];
     }
 
     //“ело
@@ -245,6 +229,7 @@ void AcDbScrew::reBuild(AcGiWorldDraw* pWD)
     thread->createFrustum(transition(), bodyDiameter() / 2,
         bodyDiameter() / 2, bodyDiameter() / 2 - transition());
     AcGePoint3d threadCenter = center() - direction() * (bodyLength() + transition() / 2);
+    //TODO: добавить поддержу матрицы пользовательской системы координат
     AcGeMatrix3d matrix;
     matrix.setToTranslation(threadCenter.asVector());
     thread->transformBy(matrix);
@@ -261,20 +246,25 @@ void AcDbScrew::reBuild(AcGiWorldDraw* pWD)
         _isLengthChanged = false;
         return;
     }
+    else
+    {
+        if (!_cachedGeometry[eHead])
+        {
+            delete _cachedGeometry[eHead];
+        }
 
-    //Ўл€пка
-    AcDb3dSolid* head = new AcDb3dSolid();
-    head->createSphere(headDiameter() / 2);
+        //Ўл€пка
+        AcDb3dSolid* head = new AcDb3dSolid();
+        head->createSphere(headDiameter() / 2);
 
-    matrix.setToTranslation(center().asVector());
-    head->transformBy(matrix);
-    circle.setCenter(center());
-    circle.setNormal(direction());
-    circle.setRadius(headDiameter() / 2);
-    AcDb3dSolid barier;
-    barier.createExtrudedSolid(&circle, -direction() * headDiameter() / 2, options);
-    head->booleanOper(AcDb::kBoolSubtract, &barier);
-    _cachedGeometry[eHead] = head;
+        matrix.setToTranslation(center().asVector());
+        head->transformBy(matrix);
+        circle.setRadius(headDiameter() / 2);
+        AcDb3dSolid barier;
+        barier.createExtrudedSolid(&circle, -direction() * headDiameter() / 2, options);
+        head->booleanOper(AcDb::kBoolSubtract, &barier);
+        _cachedGeometry[eHead] = head;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -282,7 +272,7 @@ Adesk::Boolean AcDbScrew::subWorldDraw(AcGiWorldDraw* pWD)
 {
     if (!_isGeometryActual) 
     {
-        reBuild(pWD);
+        reBuild();
     }
 
     for (AcDb3dSolid* entity : _cachedGeometry)
